@@ -1,0 +1,8 @@
+-- pico.UP
+
+CREATE TABLE "weather" (id UUID NOT NULL, city TEXT NOT NULL, temperature INTEGER, PRIMARY KEY (id))
+USING memtx
+DISTRIBUTED BY (id);
+
+-- pico.DOWN
+DROP TABLE "weather";

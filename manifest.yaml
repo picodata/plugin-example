@@ -1,0 +1,10 @@
+name: example_plugin
+description: That one is created as an example of Picodata's plugin
+version: 0.1.0
+services:
+  - name: weather
+    description: This service provides HTTP route for a throughput weather cache
+    default_configuration:
+      openweather_timeout: 5
+migration:
+  - 0001_author.db
