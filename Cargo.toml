@@ -10,6 +10,11 @@ picoplugin = { path = "/home/dimas/picodata/picodata/picoplugin" }
 linkme = "0.3.14"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0"
+fibreq = "0.1.5"
+anyhow = { version = "1.0.75" }
+once_cell = "1.18.0"
+serde_qs = "0.12"
+rmpv = { version = "1.0.0", features = ["with-serde"] }
 
 [lib]
 crate-type = ["lib", "cdylib"]
