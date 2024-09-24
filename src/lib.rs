@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use picoplugin::plugin::interface::{CallbackResult, DDL};
+use picoplugin::plugin::interface::CallbackResult;
 use picoplugin::plugin::prelude::*;
 use picoplugin::system::tarantool::tlua;
 use serde::{Deserialize, Serialize};
@@ -13,33 +13,21 @@ struct WeatherServiceCfg {
     openweather_timeout: i32,
 }
 
-struct WeatherService {
-    cfg: Option<WeatherServiceCfg>,
-}
+struct WeatherService;
 
 impl Service for WeatherService {
-    type CFG = WeatherServiceCfg;
-
-    fn on_cfg_validate(&self, _configuration: Self::CFG) -> CallbackResult<()> {
-
-        Ok(())
-    }
-
+    type Config = WeatherServiceCfg;
     fn on_config_change(
         &mut self,
-        ctx: &PicoContext,
-        new_cfg: Self::CFG,
-        _old_cfg: Self::CFG,
+        _ctx: &PicoContext,
+        _new_cfg: Self::Config,
+        _old_cfg: Self::Config,
     ) -> CallbackResult<()> {
 
         Ok(())
     }
 
-    fn schema(&self) -> Vec<DDL> {
-        vec![]
-    }
-
-    fn on_start(&mut self, ctx: &PicoContext, cfg: Self::CFG) -> CallbackResult<()> {
+    fn on_start(&mut self, _ctx: &PicoContext, _cfg: Self::Config) -> CallbackResult<()> {
         let lua = picoplugin::system::tarantool::lua_state();
         lua.exec_with(
             "pico.httpd:route({method = 'GET', path = '/hello' }, ...)",
@@ -72,7 +60,7 @@ impl Service for WeatherService {
         Ok(())
     }
 
-    fn on_stop(&mut self, ctx: &PicoContext) -> CallbackResult<()> {
+    fn on_stop(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
         let lua = picoplugin::system::tarantool::lua_state();
         lua.exec(
             r#"
@@ -102,14 +90,14 @@ impl Service for WeatherService {
     }
 
     /// Called after replicaset master is changed
-    fn on_leader_change(&mut self, ctx: &PicoContext) -> CallbackResult<()> {
+    fn on_leader_change(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
         Ok(())
     }
 }
 
 impl WeatherService {
     pub fn new() -> Self {
-        WeatherService { cfg: None }
+        WeatherService {}
     }
 }
 

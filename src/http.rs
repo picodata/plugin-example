@@ -1,7 +1,5 @@
 use std::{error::Error, time::Duration};
 
-use picoplugin::{sql::types::SqlValue, system::tarantool::tuple::Tuple};
-
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 struct CurrentWeather {
     temperature_2m: f64,
@@ -58,23 +56,21 @@ pub(crate) fn weather_handler(latitude: f64, longitude: f64) -> Result<WeatherIn
         AND
         (longitude < (? + 0.5) AND longitude > (? - 0.5));
     "#;
-    let res = picoplugin::sql::query(&select_query, vec![
-        SqlValue::double(latitude),
-        SqlValue::double(latitude),
-        SqlValue::double(longitude),
-        SqlValue::double(longitude),
-    ]).unwrap();
+    let res = picoplugin::sql::query(&select_query)
+        .bind(latitude)
+        .bind(latitude)
+        .bind(longitude)
+        .bind(longitude)
+        .fetch::<StoredWeatherInfo>()
+        .unwrap();
 
-    let rows_val = res.field::<rmpv::Value>(0).unwrap().unwrap().as_map().unwrap()[1].clone();    
-    let row: Vec<StoredWeatherInfo> = rmpv::ext::from_value(rows_val.1).unwrap();
 
-    let cache_is_empty = row.is_empty();
-    if !cache_is_empty {
+    if !res.is_empty() {
         let weather_info = WeatherInfo{
-            latitude: row[0].latitude,
-            longitude: row[0].longitude,
+            latitude: res[0].latitude,
+            longitude: res[0].longitude,
             current: CurrentWeather{
-                temperature_2m: row[0].temperature,
+                temperature_2m: res[0].temperature,
             }
         };
         return Ok(weather_info)
@@ -91,12 +87,13 @@ pub(crate) fn weather_handler(latitude: f64, longitude: f64) -> Result<WeatherIn
         VALUES(?, ?, ?, ?)
     "#;
     let uuid = picoplugin::system::tarantool::uuid::Uuid::random();
-    let _ = picoplugin::sql::query(&insert_query, vec![
-        SqlValue::uuid(uuid),
-        SqlValue::double(res.latitude),
-        SqlValue::double(res.longitude),
-        SqlValue::double(res.current.temperature_2m),
-    ]).unwrap();
+    let _ = picoplugin::sql::query(&insert_query)
+        .bind(uuid)
+        .bind(res.latitude)
+        .bind(res.longitude)
+        .bind(res.current.temperature_2m)
+        .execute()
+        .unwrap();
 
     Ok(res)
 }

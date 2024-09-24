@@ -6,7 +6,7 @@ release-bin:
 
 pack:
 	rm -rf build && mkdir build
-	cp -pr ./target/release/libplugin_test.so build/weather_cache.so
+	cp -pr ./target/debug/libplugin_test.so build/weather_cache.so
 	cp -pr manifest.yaml build/
 	cp -pr migrations build/
 
