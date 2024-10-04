@@ -4,7 +4,6 @@ use picoplugin::plugin::interface::CallbackResult;
 use picoplugin::plugin::prelude::*;
 use picoplugin::system::tarantool::tlua;
 use serde::{Deserialize, Serialize};
-use linkme;
 
 mod http;
 
@@ -23,7 +22,6 @@ impl Service for WeatherService {
         _new_cfg: Self::Config,
         _old_cfg: Self::Config,
     ) -> CallbackResult<()> {
-
         Ok(())
     }
 
@@ -31,11 +29,10 @@ impl Service for WeatherService {
         let lua = picoplugin::system::tarantool::lua_state();
         lua.exec_with(
             "pico.httpd:route({method = 'GET', path = '/hello' }, ...)",
-            tlua::Function::new(|| -> _ {
-                http::wrap_http_result!(http::hello_handler())
-            }),
-        ).unwrap();
-        
+            tlua::Function::new(|| -> _ { http::wrap_http_result!(http::hello_handler()) }),
+        )
+        .unwrap();
+
         lua.exec_with(
             "
             local function make_json_handler(fn)
@@ -55,8 +52,9 @@ impl Service for WeatherService {
                 let latitude = params.get("latitude").unwrap();
                 http::wrap_http_result!(http::weather_handler(*longitude, *latitude))
             }),
-        ).unwrap();
-                
+        )
+        .unwrap();
+
         Ok(())
     }
 
@@ -84,8 +82,9 @@ impl Service for WeatherService {
                     ::continue::
                 end
             end
-        "#
-        ).unwrap();
+        "#,
+        )
+        .unwrap();
         Ok(())
     }
 
