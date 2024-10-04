@@ -1597,6 +1597,7 @@ dependencies = [
 [[package]]
 name = "picoplugin"
 version = "0.1.0"
+source = "git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a#75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"
 dependencies = [
  "abi_stable",
  "gensym",
@@ -1615,6 +1616,7 @@ dependencies = [
 [[package]]
 name = "picoplugin_gen"
 version = "0.1.0"
+source = "git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a#75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -2418,6 +2420,7 @@ dependencies = [
 [[package]]
 name = "tarantool"
 version = "5.1.0"
+source = "git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a#75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"
 dependencies = [
  "async-trait",
  "base64 0.13.1",
@@ -2464,6 +2467,7 @@ dependencies = [
 [[package]]
 name = "tarantool-proc"
 version = "3.1.1"
+source = "git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a#75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -2626,16 +2630,19 @@ dependencies = [
 [[package]]
 name = "tlua"
 version = "3.2.0"
+source = "git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a#75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"
 dependencies = [
  "libc",
  "serde",
  "thiserror",
- "tlua-derive 0.2.1",
+ "tlua-derive 0.2.1 (git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a)",
 ]
 
 [[package]]
 name = "tlua-derive"
 version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "899e5490e17089fee6c49ceb15d62deee6c20561b3fa9bb9b12c7ed99ecc1214"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -2645,8 +2652,7 @@ dependencies = [
 [[package]]
 name = "tlua-derive"
 version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "899e5490e17089fee6c49ceb15d62deee6c20561b3fa9bb9b12c7ed99ecc1214"
+source = "git+ssh://git@git.picodata.io/picodata/picodata/picodata.git?rev=75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a#75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",

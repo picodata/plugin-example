@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-picoplugin = { path = "/home/dimas/picodata/picodata/picoplugin" }
+picoplugin = { git = "ssh://git@git.picodata.io/picodata/picodata/picodata.git", rev = "75ccc3a66c1b01c930f69c5e28dff7bc6ff2335a"  }
 linkme = "0.3.14"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0"
