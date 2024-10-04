@@ -5,8 +5,6 @@ struct CurrentWeather {
     temperature_2m: f64,
 }
 
-
-
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 struct StoredWeatherInfo {
     id: picoplugin::system::tarantool::uuid::Uuid,
@@ -26,8 +24,12 @@ static METEO_URL: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| 
     std::env::var("METEO_URL").unwrap_or(String::from("https://api.open-meteo.com"))
 });
 
-fn weather_request(latitude: f64, longitude: f64, request_timeout: u64) -> Result<WeatherInfo, Box<dyn Error>> {
-    let http_client  = fibreq::ClientBuilder::new().build();
+fn weather_request(
+    latitude: f64,
+    longitude: f64,
+    request_timeout: u64,
+) -> Result<WeatherInfo, Box<dyn Error>> {
+    let http_client = fibreq::ClientBuilder::new().build();
     let http_req = http_client
         .get(format!(
             "{url}/v1/forecast?\
@@ -37,18 +39,24 @@ fn weather_request(latitude: f64, longitude: f64, request_timeout: u64) -> Resul
             url = METEO_URL.as_str(),
             latitude = latitude,
             longitude = longitude
-        )).unwrap();
-        
-    let mut http_resp = http_req.request_timeout(Duration::from_secs(request_timeout)).send().unwrap();
-    
+        ))
+        .unwrap();
+
+    let mut http_resp = http_req
+        .request_timeout(Duration::from_secs(request_timeout))
+        .send()
+        .unwrap();
+
     let resp_body = http_resp.text().unwrap();
     let info = serde_json::from_str(&resp_body).unwrap();
 
-    return Ok(info)
+    Ok(info)
 }
 
-
-pub(crate) fn weather_handler(latitude: f64, longitude: f64) -> Result<WeatherInfo, Box<dyn Error>> {
+pub(crate) fn weather_handler(
+    latitude: f64,
+    longitude: f64,
+) -> Result<WeatherInfo, Box<dyn Error>> {
     let select_query: &str = r#"
     select * from "weather" 
     where 
@@ -56,7 +64,7 @@ pub(crate) fn weather_handler(latitude: f64, longitude: f64) -> Result<WeatherIn
         AND
         (longitude < (? + 0.5) AND longitude > (? - 0.5));
     "#;
-    let res = picoplugin::sql::query(&select_query)
+    let res = picoplugin::sql::query(select_query)
         .bind(latitude)
         .bind(latitude)
         .bind(longitude)
@@ -64,22 +72,21 @@ pub(crate) fn weather_handler(latitude: f64, longitude: f64) -> Result<WeatherIn
         .fetch::<StoredWeatherInfo>()
         .unwrap();
 
-
     if !res.is_empty() {
-        let weather_info = WeatherInfo{
+        let weather_info = WeatherInfo {
             latitude: res[0].latitude,
             longitude: res[0].longitude,
-            current: CurrentWeather{
+            current: CurrentWeather {
                 temperature_2m: res[0].temperature,
-            }
+            },
         };
-        return Ok(weather_info)
+        return Ok(weather_info);
     }
     let request_timeout = 5;
 
     let res = match weather_request(latitude, longitude, request_timeout) {
         Ok(weather_info) => weather_info,
-        Err(e) => panic!("failed to run request %{e}"),
+        Err(e) => todo!("failed to run request %{e}"),
     };
 
     let insert_query: &str = r#"
@@ -87,7 +94,7 @@ pub(crate) fn weather_handler(latitude: f64, longitude: f64) -> Result<WeatherIn
         VALUES(?, ?, ?, ?)
     "#;
     let uuid = picoplugin::system::tarantool::uuid::Uuid::random();
-    let _ = picoplugin::sql::query(&insert_query)
+    let _ = picoplugin::sql::query(insert_query)
         .bind(uuid)
         .bind(res.latitude)
         .bind(res.longitude)
