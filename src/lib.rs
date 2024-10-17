@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use picoplugin::plugin::interface::CallbackResult;
-use picoplugin::plugin::prelude::*;
-use picoplugin::system::tarantool::tlua;
+use picodata_plugin::plugin::interface::CallbackResult;
+use picodata_plugin::plugin::prelude::*;
+use picodata_plugin::system::tarantool::tlua;
 use serde::{Deserialize, Serialize};
 
 mod http;
@@ -26,7 +26,7 @@ impl Service for WeatherService {
     }
 
     fn on_start(&mut self, _ctx: &PicoContext, _cfg: Self::Config) -> CallbackResult<()> {
-        let lua = picoplugin::system::tarantool::lua_state();
+        let lua = picodata_plugin::system::tarantool::lua_state();
         lua.exec_with(
             "pico.httpd:route({method = 'GET', path = '/hello' }, ...)",
             tlua::Function::new(|| -> _ { http::wrap_http_result!(http::hello_handler()) }),
@@ -59,7 +59,7 @@ impl Service for WeatherService {
     }
 
     fn on_stop(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
-        let lua = picoplugin::system::tarantool::lua_state();
+        let lua = picodata_plugin::system::tarantool::lua_state();
         lua.exec(
             r#"
             local httpd = pico.httpd

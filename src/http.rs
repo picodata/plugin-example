@@ -7,7 +7,7 @@ struct CurrentWeather {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 struct StoredWeatherInfo {
-    id: picoplugin::system::tarantool::uuid::Uuid,
+    id: picodata_plugin::system::tarantool::uuid::Uuid,
     latitude: f64,
     longitude: f64,
     temperature: f64,
@@ -64,7 +64,7 @@ pub(crate) fn weather_handler(
         AND
         (longitude < (? + 0.5) AND longitude > (? - 0.5));
     "#;
-    let res = picoplugin::sql::query(select_query)
+    let res = picodata_plugin::sql::query(select_query)
         .bind(latitude)
         .bind(latitude)
         .bind(longitude)
@@ -93,8 +93,8 @@ pub(crate) fn weather_handler(
         INSERT INTO "weather"
         VALUES(?, ?, ?, ?)
     "#;
-    let uuid = picoplugin::system::tarantool::uuid::Uuid::random();
-    let _ = picoplugin::sql::query(insert_query)
+    let uuid = picodata_plugin::system::tarantool::uuid::Uuid::random();
+    let _ = picodata_plugin::sql::query(insert_query)
         .bind(uuid)
         .bind(res.latitude)
         .bind(res.longitude)
