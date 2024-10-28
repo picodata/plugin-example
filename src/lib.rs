@@ -1,95 +1,135 @@
-use std::collections::HashMap;
+use serde::Deserialize;
+use serde::Serialize;
 
-use picodata_plugin::plugin::interface::CallbackResult;
+use once_cell::unsync::Lazy;
 use picodata_plugin::plugin::prelude::*;
-use picodata_plugin::system::tarantool::tlua;
-use serde::{Deserialize, Serialize};
+use shors::transport::http::route::Builder;
+use shors::transport::http::{server, Request};
+use shors::transport::Context;
 
-mod http;
+use std::cell::Cell;
+use std::error::Error;
+use std::time::Duration;
 
-#[derive(Serialize, Deserialize, Debug, tlua::Push)]
-struct WeatherServiceCfg {
-    openweather_timeout: i32,
+mod openweather;
+
+thread_local! {
+    pub static HTTP_SERVER: Lazy<server::Server> = Lazy::new(server::Server::new);
 }
+thread_local! {
+    pub static TIMEOUT: Cell<Duration> = Cell::new(Duration::from_secs(3));
+}
+
+const SELECT_QUERY: &str = r#"
+select * from "weather" 
+where 
+    (latitude < (? + 0.5) AND latitude > (? - 0.5))
+    AND
+    (longitude < (? + 0.5) AND longitude > (? - 0.5));
+"#;
+
+const INSERT_QUERY: &str = r#"
+INSERT INTO "weather"
+VALUES(?, ?, ?)
+"#;
 
 struct WeatherService;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct ServiceCfg {
+    timeout: u64
+}
+
 impl Service for WeatherService {
-    type Config = WeatherServiceCfg;
+    type Config = ServiceCfg;
     fn on_config_change(
         &mut self,
         _ctx: &PicoContext,
-        _new_cfg: Self::Config,
+        new_cfg: Self::Config,
         _old_cfg: Self::Config,
     ) -> CallbackResult<()> {
+        TIMEOUT.set(Duration::from_secs(new_cfg.timeout));
         Ok(())
     }
 
     fn on_start(&mut self, _ctx: &PicoContext, _cfg: Self::Config) -> CallbackResult<()> {
-        let lua = picodata_plugin::system::tarantool::lua_state();
-        lua.exec_with(
-            "pico.httpd:route({method = 'GET', path = '/hello' }, ...)",
-            tlua::Function::new(|| -> _ { http::wrap_http_result!(http::hello_handler()) }),
-        )
-        .unwrap();
+        println!("I started with config: {_cfg:?}");
 
-        lua.exec_with(
-            "
-            local function make_json_handler(fn)
-                return function(req)
-                    return fn(req.query)
-                end
-            end
+        let hello_endpoint = Builder::new().with_method("GET").with_path("/hello").build(
+            |_ctx: &mut Context, _: Request| -> Result<_, Box<dyn Error>> {
+                Ok("Hello, World!".to_string())
+            },
+        );
 
-            pico.httpd:route(
-                { method = 'GET', path = 'api/v1/weather' },
-                    make_json_handler(...)
-            )
-            ",
-            tlua::function1(move |query: String| -> _ {
-                let params: HashMap<String, f64> = serde_qs::from_str(&query).unwrap();
-                let longitude = params.get("longitude").unwrap();
-                let latitude = params.get("latitude").unwrap();
-                http::wrap_http_result!(http::weather_handler(*longitude, *latitude))
-            }),
-        )
-        .unwrap();
+        #[derive(Serialize, Deserialize)]
+        pub struct WeatherReq {
+            latitude: f64,
+            longitude: f64,
+        }
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        pub struct Weather {
+            latitude: f64,
+            longitude: f64,
+            temperature: f64,
+        }
+
+        let weather_endpoint = Builder::new()
+            .with_method("POST")
+            .with_path("/weather")
+            .build(
+                |_ctx: &mut Context, request: Request| -> Result<_, Box<dyn Error>> {
+                    let req: WeatherReq = request.parse()?;
+                    let latitude = req.latitude;
+                    let longitude = req.longitude;
+
+                    let cached: Vec<Weather> = picodata_plugin::sql::query(&SELECT_QUERY)
+                        .bind(latitude)
+                        .bind(latitude)
+                        .bind(longitude)
+                        .bind(longitude)
+                        .fetch::<Weather>()
+                        .map_err(|err| format!("failed to retrieve data: {err}"))?;
+                    if !cached.is_empty() {
+                        let resp = cached[0].clone();
+                        return Ok(resp);
+                    }
+                    let openweather_resp =
+                        openweather::weather_request(req.latitude, req.longitude, 3)?;
+                    let resp: Weather = Weather {
+                        latitude: openweather_resp.latitude,
+                        longitude: openweather_resp.longitude,
+                        temperature: openweather_resp.current.temperature_2m,
+                    };
+
+                    let _ = picodata_plugin::sql::query(&INSERT_QUERY)
+                        .bind(resp.latitude)
+                        .bind(resp.longitude)
+                        .bind(resp.temperature)
+                        .execute()
+                        .map_err(|err| format!("failed to retrieve data: {err}"))?;
+
+                    Ok(resp)
+                },
+            );
+
+        HTTP_SERVER.with(|srv| {
+            srv.register(Box::new(hello_endpoint));
+            srv.register(Box::new(weather_endpoint));
+        });
 
         Ok(())
     }
 
     fn on_stop(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
-        let lua = picodata_plugin::system::tarantool::lua_state();
-        lua.exec(
-            r#"
-            local httpd = pico.httpd
-            if httpd ~= nil then
-                for n = 1, table.maxn(httpd.routes) do
-                    local r = httpd.routes[n]
-                    if r == nil then
-                        goto continue
-                    end
-                    if not r.name or not r.name:startswith("kirovets-api") then
-                        goto continue
-                    end
-        
-                    log.info("Removing kirovets HTTP route %q (%s)", r.path, r.method)
-                    if httpd.iroutes[r.name] ~= nil then
-                        httpd.iroutes[r.name] = nil
-                    end
-                    httpd.routes[n] = nil
-        
-                    ::continue::
-                end
-            end
-        "#,
-        )
-        .unwrap();
+        println!("I stopped with config");
+
         Ok(())
     }
 
     /// Called after replicaset master is changed
     fn on_leader_change(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
+        println!("Leader has changed!");
         Ok(())
     }
 }
@@ -102,5 +142,5 @@ impl WeatherService {
 
 #[service_registrar]
 pub fn service_registrar(reg: &mut ServiceRegistry) {
-    reg.add("weather_service", "0.1.0", WeatherService::new);
+    reg.add("weather_service", "0.2.0", WeatherService::new);
 }

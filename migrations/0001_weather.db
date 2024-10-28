@@ -1,11 +1,9 @@
 -- pico.UP
-
 CREATE TABLE "weather" (
-    id UUID NOT NULL,
     latitude NUMBER NOT NULL,
     longitude NUMBER NOT NULL,
     temperature NUMBER NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (latitude, longitude)
 )
 USING memtx
 DISTRIBUTED BY (latitude, longitude);
