@@ -3,6 +3,7 @@ CREATE TABLE "weather" (
     latitude NUMBER NOT NULL,
     longitude NUMBER NOT NULL,
     temperature NUMBER NOT NULL,
+    created_at INTEGER NOT NULL,
     PRIMARY KEY (latitude, longitude)
 )
 USING memtx

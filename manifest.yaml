@@ -6,5 +6,6 @@ services:
     description: This service provides HTTP route for a throughput weather cache
     default_configuration:
       timeout: 5
+      ttl: 3
 migration:
   - migrations/0001_weather.db

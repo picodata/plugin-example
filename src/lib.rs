@@ -1,8 +1,10 @@
+use picodata_plugin::background::CancellationToken;
 use serde::Deserialize;
 use serde::Serialize;
 
 use once_cell::unsync::Lazy;
 use picodata_plugin::plugin::prelude::*;
+use picodata_plugin::system::tarantool::clock::time;
 use shors::transport::http::route::Builder;
 use shors::transport::http::{server, Request};
 use shors::transport::Context;
@@ -20,9 +22,11 @@ thread_local! {
     pub static TIMEOUT: Cell<Duration> = Cell::new(Duration::from_secs(3));
 }
 
+const TTL_JOB_NAME: &str = "ttl-worker";
+
 const SELECT_QUERY: &str = r#"
-select * from "weather" 
-where 
+SELECT * FROM weather 
+WHERE 
     (latitude < (? + 0.5) AND latitude > (? - 0.5))
     AND
     (longitude < (? + 0.5) AND longitude > (? - 0.5));
@@ -30,30 +34,60 @@ where
 
 const INSERT_QUERY: &str = r#"
 INSERT INTO "weather"
-VALUES(?, ?, ?)
+VALUES(?, ?, ?, ?)
+"#;
+
+const TTL_QUERY: &str = r#"
+    DELETE FROM weather WHERE created_at <= ?;
 "#;
 
 struct WeatherService;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ServiceCfg {
-    timeout: u64
+    timeout: u64,
+    ttl: i64
 }
+
+fn get_ttl_job(ttl: i64) -> impl Fn(CancellationToken) {
+    move |ct: CancellationToken| {
+            while ct.wait_timeout(Duration::from_secs(1)).is_err() {
+                let expired = time() as i64 - ttl;
+                match picodata_plugin::sql::query(&TTL_QUERY)
+                .bind(expired)
+                .execute() {
+                    Ok(rows_affected) => {
+                        println!("Cleaned {rows_affected:?} expired records")
+                    },
+                    Err(error) => {
+                        println!("Error while cleaning expired records: {error:?}")
+                    }
+                };
+
+            }
+        println!("TTL worker stopped");
+    }
+}
+
 
 impl Service for WeatherService {
     type Config = ServiceCfg;
+    
     fn on_config_change(
         &mut self,
-        _ctx: &PicoContext,
+        ctx: &PicoContext,
         new_cfg: Self::Config,
         _old_cfg: Self::Config,
     ) -> CallbackResult<()> {
         TIMEOUT.set(Duration::from_secs(new_cfg.timeout));
+        let wm = ctx.worker_manager();
+        wm.cancel_tagged(TTL_JOB_NAME, Duration::from_secs(1))?;
+        wm.register_tagged_job(get_ttl_job(new_cfg.ttl), TTL_JOB_NAME)?;
         Ok(())
     }
 
-    fn on_start(&mut self, _ctx: &PicoContext, _cfg: Self::Config) -> CallbackResult<()> {
-        println!("I started with config: {_cfg:?}");
+    fn on_start(&mut self, ctx: &PicoContext, cfg: Self::Config) -> CallbackResult<()> {
+        println!("I started with config: {cfg:?}");
 
         let hello_endpoint = Builder::new().with_method("GET").with_path("/hello").build(
             |_ctx: &mut Context, _: Request| -> Result<_, Box<dyn Error>> {
@@ -106,6 +140,7 @@ impl Service for WeatherService {
                         .bind(resp.latitude)
                         .bind(resp.longitude)
                         .bind(resp.temperature)
+                        .bind(time() as i64)
                         .execute()
                         .map_err(|err| format!("failed to retrieve data: {err}"))?;
 
@@ -117,6 +152,10 @@ impl Service for WeatherService {
             srv.register(Box::new(hello_endpoint));
             srv.register(Box::new(weather_endpoint));
         });
+
+        let wm = ctx.worker_manager();
+        let ttl_job = get_ttl_job(cfg.ttl);
+        wm.register_tagged_job(ttl_job, TTL_JOB_NAME).unwrap();
 
         Ok(())
     }
