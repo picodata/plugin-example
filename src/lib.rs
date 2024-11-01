@@ -27,9 +27,9 @@ const TTL_JOB_NAME: &str = "ttl-worker";
 const SELECT_QUERY: &str = r#"
 SELECT * FROM weather 
 WHERE 
-    (latitude < (? + 0.5) AND latitude > (? - 0.5))
+    latitude = ?
     AND
-    (longitude < (? + 0.5) AND longitude > (? - 0.5));
+    longitude = ?;
 "#;
 
 const INSERT_QUERY: &str = r#"
@@ -69,7 +69,6 @@ fn get_ttl_job(ttl: i64) -> impl Fn(CancellationToken) {
     }
 }
 
-
 impl Service for WeatherService {
     type Config = ServiceCfg;
     
@@ -106,6 +105,7 @@ impl Service for WeatherService {
             latitude: f64,
             longitude: f64,
             temperature: f64,
+            created_at: i64,
         }
 
         let weather_endpoint = Builder::new()
@@ -117,30 +117,36 @@ impl Service for WeatherService {
                     let latitude = req.latitude;
                     let longitude = req.longitude;
 
+                    // we shall store latitude / longitude as integer
+                    // to avoid comparing floating point numbers
                     let cached: Vec<Weather> = picodata_plugin::sql::query(&SELECT_QUERY)
                         .bind(latitude)
-                        .bind(latitude)
-                        .bind(longitude)
                         .bind(longitude)
                         .fetch::<Weather>()
-                        .map_err(|err| format!("failed to retrieve data: {err}"))?;
+                        .map_err(|err| {
+                            format!("failed to retrieve data: {err}")
+                        })?;
                     if !cached.is_empty() {
                         let resp = cached[0].clone();
                         return Ok(resp);
                     }
                     let openweather_resp =
                         openweather::weather_request(req.latitude, req.longitude, 3)?;
+                    // use request coordinates because openweather
+                    // select the nearest avaliable coordinates
+                    // that may not match the exact request coords
                     let resp: Weather = Weather {
-                        latitude: openweather_resp.latitude,
-                        longitude: openweather_resp.longitude,
+                        latitude: latitude,
+                        longitude: longitude,
                         temperature: openweather_resp.current.temperature_2m,
+                        created_at: time() as i64,
                     };
 
                     let _ = picodata_plugin::sql::query(&INSERT_QUERY)
-                        .bind(resp.latitude)
-                        .bind(resp.longitude)
+                        .bind(latitude)
+                        .bind(longitude)
                         .bind(resp.temperature)
-                        .bind(time() as i64)
+                        .bind(resp.created_at)
                         .execute()
                         .map_err(|err| format!("failed to retrieve data: {err}"))?;
 
