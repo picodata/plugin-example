@@ -39,7 +39,11 @@ VALUES(?, ?, ?, ?)
 "#;
 
 const TTL_QUERY: &str = r#"
-    DELETE FROM weather WHERE created_at <= ?;
+    DELETE FROM weather WHERE (latitude, longitude) IN (
+        SELECT latitude, longitude FROM weather
+            WHERE created_at <= ?
+            LIMIT 10
+    );
 "#;
 
 struct WeatherService;
