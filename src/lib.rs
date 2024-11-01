@@ -27,7 +27,7 @@ const TTL_JOB_NAME: &str = "ttl-worker";
 
 const SELECT_QUERY: &str = r#"
 SELECT * FROM weather 
-WHERE 
+WHERE
     latitude = ?
     AND
     longitude = ?;
@@ -185,8 +185,11 @@ impl Service for WeatherService {
         Ok(())
     }
 
+    fn on_stop(&mut self, ctx: &PicoContext) -> CallbackResult<()> {
         say_info!("I stopped with config");
 
+        let wm = ctx.worker_manager();
+        wm.cancel_tagged(TTL_JOB_NAME, Duration::from_secs(1))?;
 
         Ok(())
     }
