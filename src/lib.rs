@@ -4,10 +4,11 @@ use serde::Serialize;
 
 use once_cell::unsync::Lazy;
 use picodata_plugin::plugin::prelude::*;
-use picodata_plugin::system::tarantool::clock::time;
+use picodata_plugin::system::tarantool::{clock::time, say_info};
 use shors::transport::http::route::Builder;
-use shors::transport::http::{server, Request};
+use shors::transport::http::{server, Request, route::Handler, Response};
 use shors::transport::Context;
+use tarantool::say_error;
 
 use std::cell::Cell;
 use std::error::Error;
@@ -49,6 +50,23 @@ struct ServiceCfg {
     ttl: i64
 }
 
+fn error_handler_middleware(handler: Handler<Box<dyn Error>>) -> Handler<Box<dyn Error>> {
+    Handler(Box::new(move |ctx, request| {
+        let inner_res = handler(ctx, request);
+        let resp = match inner_res {
+            Ok(resp) => resp,
+            Err(err) => {
+                say_error!("{err:?}");
+                let mut resp: Response = Response::from(err.to_string());
+                resp.status = 500;
+                resp
+            }
+        };
+
+        return Ok(resp);
+}))
+}
+
 fn get_ttl_job(ttl: i64) -> impl Fn(CancellationToken) {
     move |ct: CancellationToken| {
             while ct.wait_timeout(Duration::from_secs(1)).is_err() {
@@ -57,15 +75,15 @@ fn get_ttl_job(ttl: i64) -> impl Fn(CancellationToken) {
                 .bind(expired)
                 .execute() {
                     Ok(rows_affected) => {
-                        println!("Cleaned {rows_affected:?} expired records")
+                        say_info!("Cleaned {rows_affected:?} expired records");
                     },
                     Err(error) => {
-                        println!("Error while cleaning expired records: {error:?}")
+                        say_error!("Error while cleaning expired records: {error:?}")
                     }
                 };
 
             }
-        println!("TTL worker stopped");
+        say_info!("TTL worker stopped");
     }
 }
 
@@ -86,7 +104,7 @@ impl Service for WeatherService {
     }
 
     fn on_start(&mut self, ctx: &PicoContext, cfg: Self::Config) -> CallbackResult<()> {
-        println!("I started with config: {cfg:?}");
+        say_info!("I started with config: {cfg:?}");
 
         let hello_endpoint = Builder::new().with_method("GET").with_path("/hello").build(
             |_ctx: &mut Context, _: Request| -> Result<_, Box<dyn Error>> {
@@ -111,6 +129,7 @@ impl Service for WeatherService {
         let weather_endpoint = Builder::new()
             .with_method("POST")
             .with_path("/weather")
+            .with_middleware(error_handler_middleware)
             .build(
                 |_ctx: &mut Context, request: Request| -> Result<_, Box<dyn Error>> {
                     let req: WeatherReq = request.parse()?;
@@ -153,7 +172,7 @@ impl Service for WeatherService {
                     Ok(resp)
                 },
             );
-
+        
         HTTP_SERVER.with(|srv| {
             srv.register(Box::new(hello_endpoint));
             srv.register(Box::new(weather_endpoint));
@@ -166,15 +185,15 @@ impl Service for WeatherService {
         Ok(())
     }
 
-    fn on_stop(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
-        println!("I stopped with config");
+        say_info!("I stopped with config");
+
 
         Ok(())
     }
 
     /// Called after replicaset master is changed
     fn on_leader_change(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
-        println!("Leader has changed!");
+        say_info!("Leader has changed!");
         Ok(())
     }
 }
