@@ -1,0 +1,7 @@
+[tiers.default]
+instances = 1
+replication_factor = 1
+
+[[tiers.default.services]]
+name = "weather_service"
+plugin = "weather_cache"
