@@ -1,4 +1,6 @@
 /target
-/build
+topology.toml
+tmp
+local
 i1/
 picodata

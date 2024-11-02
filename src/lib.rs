@@ -213,5 +213,5 @@ impl WeatherService {
 
 #[service_registrar]
 pub fn service_registrar(reg: &mut ServiceRegistry) {
-    reg.add("weather_service", "0.2.0", WeatherService::new);
+    reg.add("weather_service", env!("CARGO_PKG_VERSION"), WeatherService::new);
 }
