@@ -190,7 +190,7 @@ impl Service for WeatherService {
     }
 
     fn on_stop(&mut self, ctx: &PicoContext) -> CallbackResult<()> {
-        say_info!("I stopped with config");
+        say_info!("I stopped");
 
         let wm = ctx.worker_manager();
         wm.cancel_tagged(TTL_JOB_NAME, Duration::from_secs(1))?;
