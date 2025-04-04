@@ -101,9 +101,10 @@ impl Service for WeatherService {
         _old_cfg: Self::Config,
     ) -> CallbackResult<()> {
         TIMEOUT.set(Duration::from_secs(new_cfg.timeout));
-        let wm = ctx.worker_manager();
-        wm.cancel_tagged(TTL_JOB_NAME, Duration::from_secs(1))?;
-        wm.register_tagged_job(get_ttl_job(new_cfg.ttl), TTL_JOB_NAME)?;
+        ctx.cancel_tagged_jobs(TTL_JOB_NAME, Duration::from_secs(1))
+            .map_err(|err| format!("failed to cancel tagged jobs on config change: {err}"))?;
+        ctx.register_tagged_job(get_ttl_job(new_cfg.ttl), TTL_JOB_NAME)
+           .map_err(|err| format!("failed to register tagged jobs on config change: {err}"))?;
         Ok(())
     }
 
@@ -182,9 +183,9 @@ impl Service for WeatherService {
             srv.register(Box::new(weather_endpoint));
         });
 
-        let wm = ctx.worker_manager();
         let ttl_job = get_ttl_job(cfg.ttl);
-        wm.register_tagged_job(ttl_job, TTL_JOB_NAME).unwrap();
+        ctx.register_tagged_job(ttl_job, TTL_JOB_NAME)
+            .map_err(|err| format!("failed to register tagged job: {err}"))?;
 
         Ok(())
     }
@@ -192,8 +193,8 @@ impl Service for WeatherService {
     fn on_stop(&mut self, ctx: &PicoContext) -> CallbackResult<()> {
         say_info!("I stopped");
 
-        let wm = ctx.worker_manager();
-        wm.cancel_tagged(TTL_JOB_NAME, Duration::from_secs(1))?;
+        ctx.cancel_tagged_jobs(TTL_JOB_NAME, Duration::from_secs(1))
+            .map_err(|err| format!("failed to cancel tagged jobs on stop: {err}"))?;
 
         Ok(())
     }
