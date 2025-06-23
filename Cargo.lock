@@ -1956,20 +1956,20 @@ dependencies = [
 
 [[package]]
 name = "picodata-plugin"
-version = "25.1.1"
+version = "25.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9552b8cc8fd1abb5b8456cb8d4482a052cca313f06ca1a8208a91e0798abada0"
+checksum = "810687edce92d63b92aca0523e1a187a75213adacda3fca6ebada6a956d5ea8d"
 dependencies = [
  "abi_stable",
  "gensym",
  "log",
- "picodata-plugin-proc-macro 25.1.1",
+ "picodata-plugin-proc-macro 25.2.1",
  "rmp",
  "rmp-serde",
  "rmpv",
  "serde",
  "smol_str",
- "tarantool 6.1.0",
+ "tarantool 7.0.0",
  "tarolog 0.2.1",
  "thiserror",
  "tros 0.2.2",
@@ -1989,9 +1989,9 @@ dependencies = [
 
 [[package]]
 name = "picodata-plugin-proc-macro"
-version = "25.1.1"
+version = "25.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce9791891d2631c174066d4ceb8e8de2c4cc9b361fff76d2be55dbef561c54d"
+checksum = "72dd36fd424a4fb92eccc0506519a181dc6d61a77eaa856f3f92afad520620c2"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -2951,7 +2951,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha-1",
- "tarantool-proc",
+ "tarantool-proc 3.2.0",
  "thiserror",
  "time 0.3.17",
  "tlua 3.1.0",
@@ -2984,7 +2984,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha-1",
- "tarantool-proc",
+ "tarantool-proc 3.2.0",
  "tester",
  "thiserror",
  "time 0.3.17",
@@ -3019,11 +3019,44 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha-1",
- "tarantool-proc",
- "tester",
+ "tarantool-proc 3.2.0",
  "thiserror",
  "time 0.3.17",
  "tlua 4.0.0",
+ "uuid 0.8.2",
+ "va_list",
+]
+
+[[package]]
+name = "tarantool"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36c580aaef616cef9dd4ac115233a7010ca9661deafd969a7beea5432641dbb2"
+dependencies = [
+ "async-trait",
+ "base64 0.13.1",
+ "bitflags 1.3.2",
+ "crossbeam-queue",
+ "dlopen",
+ "futures",
+ "libc",
+ "linkme 0.3.32",
+ "log",
+ "md-5",
+ "once_cell",
+ "refpool",
+ "rmp",
+ "rmp-serde",
+ "rmpv",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha-1",
+ "tarantool-proc 4.0.0",
+ "tester",
+ "thiserror",
+ "time 0.3.17",
+ "tlua 6.0.0",
  "tokio",
  "uuid 0.8.2",
  "va_list",
@@ -3034,6 +3067,19 @@ name = "tarantool-proc"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccb355f2f6ff18bfa0bfad5630230a9c672754e182f30c0dab64d0fe51fc2591"
+dependencies = [
+ "darling 0.14.4",
+ "proc-macro-error",
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "tarantool-proc"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dcd7a8954774bcc6ae9b39a53de30223dcbe9342f34c7ef1112e9f029ebe141"
 dependencies = [
  "darling 0.14.4",
  "proc-macro-error",
@@ -3217,7 +3263,7 @@ dependencies = [
  "libc",
  "serde",
  "thiserror",
- "tlua-derive",
+ "tlua-derive 0.2.1",
 ]
 
 [[package]]
@@ -3229,7 +3275,19 @@ dependencies = [
  "libc",
  "serde",
  "thiserror",
- "tlua-derive",
+ "tlua-derive 0.2.1",
+]
+
+[[package]]
+name = "tlua"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4af02ef2958d702382c196f60a32be9e625bb869f41fafaff8b2241f066b9a36"
+dependencies = [
+ "libc",
+ "serde",
+ "thiserror",
+ "tlua-derive 1.0.0",
 ]
 
 [[package]]
@@ -3237,6 +3295,17 @@ name = "tlua-derive"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899e5490e17089fee6c49ceb15d62deee6c20561b3fa9bb9b12c7ed99ecc1214"
+dependencies = [
+ "proc-macro2 1.0.86",
+ "quote 1.0.37",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "tlua-derive"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "332ecbac6aa1a42f48651e6af7e8c6281ef7f0c478ee48ebc557fe4d9f704c83"
 dependencies = [
  "proc-macro2 1.0.86",
  "quote 1.0.37",
@@ -3610,7 +3679,7 @@ dependencies = [
  "linkme 0.3.32",
  "liquid",
  "once_cell",
- "picodata-plugin 25.1.1",
+ "picodata-plugin 25.2.1",
  "rmpv",
  "serde",
  "serde_json",
