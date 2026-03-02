@@ -1092,18 +1092,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gensym"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "913dce4c5f06c2ea40fc178c06f777ac89fc6b1383e90c254fafb1abe4ba3c82"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.107",
- "uuid 1.18.1",
-]
-
-[[package]]
 name = "getopts"
 version = "0.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1895,12 +1883,11 @@ dependencies = [
 
 [[package]]
 name = "picodata-plugin"
-version = "25.4.3"
+version = "25.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba9548caea72bc75439004453c1aaab7185af2292c0b41725797c74096b61dd4"
+checksum = "63d05422eeaeacffab99bf2f17a875d5531c55b090a915497dfcc63b3a6d05b6"
 dependencies = [
  "abi_stable",
- "gensym",
  "log",
  "picodata-plugin-proc-macro",
  "rmp",
@@ -1916,11 +1903,10 @@ dependencies = [
 
 [[package]]
 name = "picodata-plugin-proc-macro"
-version = "25.4.3"
+version = "25.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2449f37631cc6b5cd2ca2c1f23c79d8b5c84b3b0b772e3511ef2c3cb05b8268a"
+checksum = "1be0848e70d7f7d3984bf99e745c6b4553b39b49454506efffd3fa34914f2841"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn 1.0.109",
 ]
@@ -2885,9 +2871,9 @@ dependencies = [
 
 [[package]]
 name = "tarantool"
-version = "10.0.0"
+version = "10.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9023b0e13bba521ee42d90ea1c34bf2725ccc002024cd20c14b8b684e4324d6f"
+checksum = "5ed5418f2d5745bf97b042087060abb5075581c70bf3eca94aa59418138290a1"
 dependencies = [
  "async-trait",
  "base64 0.13.1",
@@ -2915,15 +2901,15 @@ dependencies = [
  "time 0.3.44",
  "tlua",
  "tokio",
- "uuid 0.8.2",
+ "uuid",
  "va_list",
 ]
 
 [[package]]
 name = "tarantool-proc"
-version = "4.0.1"
+version = "4.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04c8f4e37f22ab17afbfb619fcdff057562cac4c808660b6346a011ccd7a0aab"
+checksum = "e05641490f6cf1e631f959ab9c201fafdd27b500e07ef8dce14d8548b91c082f"
 dependencies = [
  "darling 0.14.4",
  "proc-macro-error2",
@@ -3083,9 +3069,9 @@ dependencies = [
 
 [[package]]
 name = "tlua"
-version = "7.0.0"
+version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d40832da10a08c31fce25051d2f84b948d5e84a11a83c545f0d79117131e170"
+checksum = "3bbdeddec06239f14b5ab894136c688c3ef7f97bd76235805525664e8152de10"
 dependencies = [
  "libc",
  "serde",
@@ -3289,17 +3275,6 @@ name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-
-[[package]]
-name = "uuid"
-version = "1.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f87b8aa10b915a06587d0dec516c282ff295b475d94abf425d62b57710070a2"
-dependencies = [
- "getrandom 0.3.4",
- "js-sys",
- "wasm-bindgen",
-]
 
 [[package]]
 name = "va_list"
