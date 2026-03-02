@@ -4,17 +4,27 @@ use serde::Serialize;
 
 use once_cell::{sync};
 use picodata_plugin::plugin::prelude::*;
-use picodata_plugin::system::tarantool::{clock::time, say_info};
+use picodata_plugin::system::tarantool::{clock::time};
 use shors::transport::http::route::Builder;
 use shors::transport::http::{server, Request, route::Handler, Response};
 use shors::transport::Context;
-use tarantool::say_error;
 
 use std::cell::Cell;
 use std::error::Error;
 use std::time::Duration;
 
 mod openweather;
+
+use picodata_plugin::system::tarantool::log as t_log;
+static LOGGER: sync::Lazy<t_log::TarantoolLogger> = sync::Lazy::new(|| {
+  t_log::TarantoolLogger::with_mapping(|level: log::Level| match level {
+    log::Level::Error => t_log::SayLevel::Error,
+    log::Level::Warn => t_log::SayLevel::Warn,
+    log::Level::Info => t_log::SayLevel::Info,
+    log::Level::Debug => t_log::SayLevel::Verbose,
+    log::Level::Trace => t_log::SayLevel::Debug,
+  })
+});
 
 thread_local! {
     pub static HTTP_SERVER: sync::Lazy<server::Server> = sync::Lazy::new(server::Server::new);
@@ -60,7 +70,7 @@ fn error_handler_middleware(handler: Handler<Box<dyn Error>>) -> Handler<Box<dyn
         let resp = match inner_res {
             Ok(resp) => resp,
             Err(err) => {
-                say_error!("{err:?}");
+                log::error!("{err:?}");
                 let mut resp: Response = Response::from(err.to_string());
                 resp.status = 500;
                 resp
@@ -79,15 +89,15 @@ fn get_ttl_job(ttl: i64) -> impl Fn(CancellationToken) {
                 .bind(expired)
                 .execute() {
                     Ok(rows_affected) => {
-                        say_info!("Cleaned {rows_affected:?} expired records");
+                        log::info!("Cleaned {rows_affected:?} expired records");
                     },
                     Err(error) => {
-                        say_error!("Error while cleaning expired records: {error:?}")
+                        log::error!("Error while cleaning expired records: {error:?}")
                     }
                 };
 
             }
-        say_info!("TTL worker stopped");
+        log::info!("TTL worker stopped");
     }
 }
 
@@ -109,7 +119,11 @@ impl Service for WeatherService {
     }
 
     fn on_start(&mut self, ctx: &PicoContext, cfg: Self::Config) -> CallbackResult<()> {
-        say_info!("I started with config: {cfg:?}");
+        log::info!("I started with config: {cfg:?}");
+
+        if let Err(e) = log::set_logger(&*LOGGER) {
+        println!("failed to setup logger: {e:?}");
+        }
 
         let hello_endpoint = Builder::new().with_method("GET").with_path("/hello").build(
             |_ctx: &mut Context, _: Request| -> Result<_, Box<dyn Error>> {
@@ -191,7 +205,7 @@ impl Service for WeatherService {
     }
 
     fn on_stop(&mut self, ctx: &PicoContext) -> CallbackResult<()> {
-        say_info!("I stopped");
+        log::info!("I stopped");
 
         ctx.cancel_tagged_jobs(TTL_JOB_NAME, Duration::from_secs(1))
             .map_err(|err| format!("failed to cancel tagged jobs on stop: {err}"))?;
@@ -201,7 +215,7 @@ impl Service for WeatherService {
 
     /// Called after replicaset master is changed
     fn on_leader_change(&mut self, _ctx: &PicoContext) -> CallbackResult<()> {
-        say_info!("Leader has changed!");
+        log::info!("Leader has changed!");
         Ok(())
     }
 }

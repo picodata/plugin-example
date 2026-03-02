@@ -3418,6 +3418,7 @@ dependencies = [
  "fs_extra",
  "linkme",
  "liquid",
+ "log",
  "once_cell",
  "picodata-plugin",
  "rmpv",
