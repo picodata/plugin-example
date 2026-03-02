@@ -2,7 +2,7 @@ use picodata_plugin::background::CancellationToken;
 use serde::Deserialize;
 use serde::Serialize;
 
-use once_cell::unsync::Lazy;
+use once_cell::{sync};
 use picodata_plugin::plugin::prelude::*;
 use picodata_plugin::system::tarantool::{clock::time, say_info};
 use shors::transport::http::route::Builder;
@@ -17,7 +17,7 @@ use std::time::Duration;
 mod openweather;
 
 thread_local! {
-    pub static HTTP_SERVER: Lazy<server::Server> = Lazy::new(server::Server::new);
+    pub static HTTP_SERVER: sync::Lazy<server::Server> = sync::Lazy::new(server::Server::new);
 }
 thread_local! {
     pub static TIMEOUT: Cell<Duration> = Cell::new(Duration::from_secs(3));
