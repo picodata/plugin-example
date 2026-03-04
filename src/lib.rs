@@ -2,11 +2,11 @@ use picodata_plugin::background::CancellationToken;
 use serde::Deserialize;
 use serde::Serialize;
 
-use once_cell::{sync};
+use once_cell::sync;
 use picodata_plugin::plugin::prelude::*;
-use picodata_plugin::system::tarantool::{clock::time};
+use picodata_plugin::system::tarantool::clock::time;
 use shors::transport::http::route::Builder;
-use shors::transport::http::{server, Request, route::Handler, Response};
+use shors::transport::http::{route::Handler, server, Request, Response};
 use shors::transport::Context;
 
 use std::cell::Cell;
@@ -17,13 +17,13 @@ mod openweather;
 
 use picodata_plugin::system::tarantool::log as t_log;
 static LOGGER: sync::Lazy<t_log::TarantoolLogger> = sync::Lazy::new(|| {
-  t_log::TarantoolLogger::with_mapping(|level: log::Level| match level {
-    log::Level::Error => t_log::SayLevel::Error,
-    log::Level::Warn => t_log::SayLevel::Warn,
-    log::Level::Info => t_log::SayLevel::Info,
-    log::Level::Debug => t_log::SayLevel::Verbose,
-    log::Level::Trace => t_log::SayLevel::Debug,
-  })
+    t_log::TarantoolLogger::with_mapping(|level: log::Level| match level {
+        log::Level::Error => t_log::SayLevel::Error,
+        log::Level::Warn => t_log::SayLevel::Warn,
+        log::Level::Info => t_log::SayLevel::Info,
+        log::Level::Debug => t_log::SayLevel::Verbose,
+        log::Level::Trace => t_log::SayLevel::Debug,
+    })
 });
 
 thread_local! {
@@ -61,7 +61,7 @@ struct WeatherService;
 #[derive(Serialize, Deserialize, Debug)]
 struct ServiceCfg {
     timeout: u64,
-    ttl: i64
+    ttl: i64,
 }
 
 fn error_handler_middleware(handler: Handler<Box<dyn Error>>) -> Handler<Box<dyn Error>> {
@@ -78,32 +78,32 @@ fn error_handler_middleware(handler: Handler<Box<dyn Error>>) -> Handler<Box<dyn
         };
 
         return Ok(resp);
-}))
+    }))
 }
 
 fn get_ttl_job(ttl: i64) -> impl Fn(CancellationToken) {
     move |ct: CancellationToken| {
-            while ct.wait_timeout(Duration::from_secs(1)).is_err() {
-                let expired = time() as i64 - ttl;
-                match picodata_plugin::sql::query(&TTL_QUERY)
+        while ct.wait_timeout(Duration::from_secs(1)).is_err() {
+            let expired = time() as i64 - ttl;
+            match picodata_plugin::sql::query(&TTL_QUERY)
                 .bind(expired)
-                .execute() {
-                    Ok(rows_affected) => {
-                        log::info!("Cleaned {rows_affected:?} expired records");
-                    },
-                    Err(error) => {
-                        log::error!("Error while cleaning expired records: {error:?}")
-                    }
-                };
-
-            }
+                .execute()
+            {
+                Ok(rows_affected) => {
+                    log::info!("Cleaned {rows_affected:?} expired records");
+                }
+                Err(error) => {
+                    log::error!("Error while cleaning expired records: {error:?}")
+                }
+            };
+        }
         log::info!("TTL worker stopped");
     }
 }
 
 impl Service for WeatherService {
     type Config = ServiceCfg;
-    
+
     fn on_config_change(
         &mut self,
         ctx: &PicoContext,
@@ -114,7 +114,7 @@ impl Service for WeatherService {
         ctx.cancel_tagged_jobs(TTL_JOB_NAME, Duration::from_secs(1))
             .map_err(|err| format!("failed to cancel tagged jobs on config change: {err}"))?;
         ctx.register_tagged_job(get_ttl_job(new_cfg.ttl), TTL_JOB_NAME)
-           .map_err(|err| format!("failed to register tagged jobs on config change: {err}"))?;
+            .map_err(|err| format!("failed to register tagged jobs on config change: {err}"))?;
         Ok(())
     }
 
@@ -122,7 +122,7 @@ impl Service for WeatherService {
         log::info!("I started with config: {cfg:?}");
 
         if let Err(e) = log::set_logger(&*LOGGER) {
-        println!("failed to setup logger: {e:?}");
+            println!("failed to setup logger: {e:?}");
         }
 
         let hello_endpoint = Builder::new().with_method("GET").with_path("/hello").build(
@@ -161,9 +161,7 @@ impl Service for WeatherService {
                         .bind(latitude)
                         .bind(longitude)
                         .fetch::<Weather>()
-                        .map_err(|err| {
-                            format!("failed to retrieve data: {err}")
-                        })?;
+                        .map_err(|err| format!("failed to retrieve data: {err}"))?;
                     if !cached.is_empty() {
                         let resp = cached[0].clone();
                         return Ok(resp);
@@ -191,7 +189,7 @@ impl Service for WeatherService {
                     Ok(resp)
                 },
             );
-        
+
         HTTP_SERVER.with(|srv| {
             srv.register(Box::new(hello_endpoint));
             srv.register(Box::new(weather_endpoint));
@@ -228,5 +226,9 @@ impl WeatherService {
 
 #[service_registrar]
 pub fn service_registrar(reg: &mut ServiceRegistry) {
-    reg.add("weather_service", env!("CARGO_PKG_VERSION"), WeatherService::new);
+    reg.add(
+        "weather_service",
+        env!("CARGO_PKG_VERSION"),
+        WeatherService::new,
+    );
 }
